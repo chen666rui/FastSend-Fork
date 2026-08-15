@@ -1,4 +1,4 @@
-<h1 align="center">FastSend重置版</h1>
+<h1 align="center">FastSend-Fork</h1>
 
 <p align="center">
   <img alt="Version" src="https://img.shields.io/badge/version-1.0.0正式版-blue.svg?style=flat-square" />
@@ -15,7 +15,7 @@
 
 ## 📖 项目介绍
 
-FastSend重置版是基于FastSend的分支，基于 WebRTC 技术的点对点文件传输工具，支持快速的目录同步和文件传输。通过浏览器即可实现安全、高效的文件共享。重置版在保留原版全部能力的基础上，于**传输内核、安全隐私、UI 体验、部署工程**四个维度进行了全面深度增强。
+FastSend-Fork是基于FastSend的分支，基于 WebRTC 技术的点对点文件传输工具，支持快速的目录同步和文件传输。通过浏览器即可实现安全、高效的文件共享。重置版在保留原版全部能力的基础上，于**传输内核、安全隐私、UI 体验、部署工程**四个维度进行了全面深度增强。
 
 
 🌐 在线体验：[暂无]
