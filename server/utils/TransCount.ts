@@ -28,7 +28,7 @@ export function saveTransCount() {
   }
 }
 
-export function incTransCount() {
+export function increaseTransCount() {
   count++
   saveTransCount()
 }
