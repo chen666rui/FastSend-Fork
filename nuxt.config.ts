@@ -53,10 +53,8 @@ export default defineNuxtConfig({
       'A tool station based on WebRTC to achieve point-to-point fast directory synchronization and file transfer'
     // defaultLocale: 'zh'
   },
-    sitemap: {
-    zeroRuntime: true,
-    // 🛠️ Cloudflare Pages 构建时自动禁用 sitemap（修复预渲染 500）
-    enabled: process.env.CF_PAGES !== '1'
+      sitemap: {
+    enabled: false
   },
 
   ogImage: {
