@@ -1,0 +1,59 @@
+# YAML
+name: Stale Issue Management
+
+on:
+  schedule:
+    # Run at 16:00 UTC every 14 days (corresponds to 00:00 CST)
+    - cron: '0 16 */14 * *'
+  # Allow manual triggering
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  # Additional permissions are required to operate Issues and PRs
+  issues: write
+  pull-requests: write
+
+jobs:
+  manage_issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close stale Issues and PRs
+        uses: actions/stale@v10.2.0
+        with:
+          # Issues / PRs inactive for 30 days will be marked as stale
+          days-before-stale: 14
+          # Stale Issues / PRs will be closed after 14 days
+          days-before-close: 7
+          stale-issue-message: |
+            > [!WARNING]
+            >
+            > 您的 Issue 已经过期，我们将在 7 天后以「无计划」为由自动关闭。
+          stale-pr-message: |
+            > [!WARNING]
+            >
+            > 您的 PR 已经过期，我们将在 7 天后自动将其拒绝并关闭。
+          close-issue-message: |
+            > [!CAUTION]
+            >
+            > 您的 Issue 已经过期，我们已经自动关闭了它。
+            >
+            > 如果您仍然遇到此问题，请在此 Issue 下方留言，我们将尽快回复并可能重新开启它。
+          close-pr-message: |
+            > [!CAUTION]
+            >
+            > 您的 PR 已经过期，我们已经自动关闭了它。
+            >
+            > 如果您仍然希望合并此 PR ，请在此 PR 下方留言，我们将尽快回复并可能重新开启它。
+          # Stale Issues and PRs will be added the following labels
+          stale-issue-label: No-Recent-Activity
+          stale-pr-label: No-Recent-Activity
+          # Issues and PRs with the following labels will not be closed
+          exempt-issue-labels: In-Progress
+          exempt-pr-labels: In-Progress
+          # When Issues and PRs become active again, automatically remove the following labels
+          labels-to-remove-when-unstale: No-Recent-Activity
+          # Sort Issues and PRs by creation time in ascending order, prioritize handling old Issues and PRs
+          ascending: true
+          # Ignore PRs in draft status
+          exempt-draft-pr: true

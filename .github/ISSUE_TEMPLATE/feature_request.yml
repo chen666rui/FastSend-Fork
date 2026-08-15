@@ -1,0 +1,50 @@
+name: "功能需求"
+description: 使用本项目有什么功能需求，点击反馈！
+labels:
+  - Feature
+title: "【功能需求】："
+assignees:
+  - Dragon1573
+  - ShouChenICU
+body:
+  - type: checkboxes
+    id: feature_type
+    attributes:
+      label: "前置条件"
+      description: "请确认您已经完成了以下操作"
+      options:
+        - label: "我已经查阅了 README 文档，但它提到我需要的功能"
+        - label: "我尝试自行部署并运行 main 分支下的最新代码，问题依然存在"
+        - label: "我已经在 GitHub Issues / Pull Requests 中搜索了这个需求，但没有人提到过它"
+        - label: "我已经尝试在其他平台进行搜索，但没有人能提供具备这个功能的 Fork"
+        - label: "我已经尝试向 LLM 寻求帮助，但它也无法实现这项功能"
+        - label: "我是一名经验丰富的开发者，这个功能很简单，我能帮助实现这项功能"
+        - label: "我本应该无视掉这一条，我只是无脑全选了以上所有项而已"
+  - type: textarea
+    id: feature_description
+    attributes:
+      label: "功能描述"
+      description: "请详细描述您希望添加的功能"
+    validations:
+      required: true
+  - type: textarea
+    id: feature_reason
+    attributes:
+      label: "功能原因"
+      description: "为什么你认为这个功能对项目有益"
+    validations:
+      required: true
+  - type: textarea
+    id: feature_reproduce
+    attributes:
+      label: "目标效果"
+      description: "你希望这个功能实现后，会有什么效果"
+    validations:
+      required: true
+  - type: textarea
+    id: feature_plan
+    attributes:
+      label: "实现方案"
+      description: "你希望如何实现这个功能，有什么脑洞大开的想法"
+    validations:
+      required: false
