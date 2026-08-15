@@ -128,6 +128,17 @@ npm install
 # 构建项目
 npm run build
 ```
+
+# Yarn的安装与构建
+```bash
+# 安装依赖
+yarn install
+
+# 构建项目
+yarn build
+```
+
+
 - # 使用脚本构建
 
 - 进入./command文件夹
