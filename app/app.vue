@@ -23,6 +23,7 @@ onMounted(() => {
   <NuxtRouteAnnouncer />
   <FullScreenLoader />
   <Toast position="top-right" />
+  <LanRadar />
   <NavBar />
   <NuxtPage />
   <AppFooter />
