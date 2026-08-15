@@ -118,15 +118,7 @@ FastSend重置版是基于FastSend的分支，基于 WebRTC 技术的点对点�
 
 ## 📦 安装与构建
 
-# yarn的安装与构建
 
-```bash
-# 安装依赖
-yarn install
-
-# 构建项目
-yarn build
-```
 
 # npm的安装与构建
 ```bash
