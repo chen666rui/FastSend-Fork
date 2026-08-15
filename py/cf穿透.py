@@ -8,7 +8,7 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 # ================= 🛠️ 配置区域 =================
-LOCAL_PORT = 3000                             # FastSend 运行端口
+LOCAL_PORT = 3443                            # FastSend 运行端口
 CLOUDFLARED_CMD = r"C:\cf\cloudflared-windows-amd64.exe" # cloudflared 路径
 
 # 👇 填入你的邮箱配置 (以QQ邮箱为例，163邮箱只需改服务器地址)
@@ -63,7 +63,7 @@ def main():
     print(f"🚀 正在启动 Cloudflare 隧道，映射本地 {LOCAL_PORT} 端口...")
     
     process = subprocess.Popen(
-        [CLOUDFLARED_CMD, "tunnel", "--url", f"http://localhost:{LOCAL_PORT}"],
+                [CLOUDFLARED_CMD, "tunnel", "--url", f"https://localhost:{LOCAL_PORT}", "--no-tlsverify"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

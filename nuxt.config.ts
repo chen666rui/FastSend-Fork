@@ -3,7 +3,7 @@ import path from 'path'
 export default defineNuxtConfig({
   ssr: false,
   srcDir: 'app',
-  devtools: { enabled: true },
+    devtools: { enabled: false },
   css: ['@/assets/main.css'],
 
   imports: {
@@ -52,6 +52,9 @@ export default defineNuxtConfig({
     description:
       'A tool station based on WebRTC to achieve point-to-point fast directory synchronization and file transfer'
     // defaultLocale: 'zh'
+  },
+  sitemap: {
+    zeroRuntime: true
   },
 
   ogImage: {
@@ -125,6 +128,17 @@ export default defineNuxtConfig({
     // 避免外置 node_modules 中传递依赖缺失（Node 24+ ESM 严格解析）
     externals: {
       inline: [/.*/]
+    }
+  },
+  routeRules: {
+    '/**': {
+      headers: {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'DENY',
+        'Referrer-Policy': 'no-referrer',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+      }
     }
   },
 
