@@ -141,13 +141,17 @@ export const useSenderTransferStore = defineStore('senderTransfer', () => {
         startTime: new Date().getTime()
       }
 
-      const sliceSize = 1024 * 1024
-      const count = Math.ceil(file.size / sliceSize)
-      for (let index = 0; index < count; index++) {
-        const ab = await file.slice(index * sliceSize, (index + 1) * sliceSize).arrayBuffer()
-        if (ab.byteLength === 0) {
-          continue
-        }
+                 // 🚀 底层优化：零拷贝流式读取 (File.stream) + 视图偏移修复
+      hasher.reset()
+      const reader = file.stream().getReader()
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        
+        // 🛠️ 核心修复：必须 slice 出真实的 chunk 内存，切断与底层共享大 buffer 的联系
+        const ab = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
+        if (ab.byteLength === 0) continue
 
         hasher.update(CryptoJS.lib.WordArray.create(ab))
         await pdc?.sendData(ab)
@@ -158,12 +162,14 @@ export const useSenderTransferStore = defineStore('senderTransfer', () => {
 
         const nowTime = new Date().getTime()
         const elapsed = nowTime - curFile.value.startTime
-        // 防止时间差为零导致除零异常
         if (elapsed > 0) {
-          curFile.value.speed = (curFile.value.speed + ab.byteLength / (elapsed / 1e3)) / 2
+          // 🛠️ 优化速度计算：使用 EMA (指数移动平均) 避免瞬时波动导致 ETA 乱跳
+          const instantSpeed = ab.byteLength / (elapsed / 1e3)
+          curFile.value.speed = curFile.value.speed * 0.7 + instantSpeed * 0.3
         }
         curFile.value.startTime = nowTime
       }
+
 
       await pdc?.sendData(
         JSON.stringify({

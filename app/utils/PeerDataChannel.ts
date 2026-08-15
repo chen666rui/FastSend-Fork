@@ -1,15 +1,9 @@
-/**
- * PeerDataChannel 配置类
- */
 interface PeerDataChannelConfig {
   iceServers?: RTCIceServer[]
   blockSize?: number
   initializeDataChannel?: boolean
 }
 
-/**
- * 封装用于点对点数据传输的 WebRTC 数据通道
- */
 export class PeerDataChannel {
   private static readonly DEFAULT_BLOCK_SIZE = 32768
 
@@ -25,6 +19,7 @@ export class PeerDataChannel {
   private sendPromiseReject: ((reason?: any) => void) | null = null
   private eventQueue: EventQueue<ArrayBuffer | string>
   private blockSize: number
+  private isRestartingIce = false
 
   public onReceive: (
     data: ArrayBuffer | string,
@@ -37,31 +32,38 @@ export class PeerDataChannel {
   public onDispose: () => void = () => {}
   public onOpen: () => void = () => {}
 
-  /**
-   * 创建一个新的 PeerDataChannel 实例
-   * @param config 配置
-   */
   constructor(config: PeerDataChannelConfig = {}) {
     this.blockSize = config.blockSize || PeerDataChannel.DEFAULT_BLOCK_SIZE
     this.eventQueue = new EventQueue(this.onData.bind(this))
     this.pc = new RTCPeerConnection({ iceServers: config.iceServers })
-
     this.setupPeerConnection()
-
-    if (config.initializeDataChannel) {
-      this.initializeDataChannel()
-    }
+    if (config.initializeDataChannel) this.initializeDataChannel()
   }
 
   private setupPeerConnection(): void {
     this.pc.ondatachannel = this.handleDataChannel.bind(this)
     this.pc.onnegotiationneeded = this.reNegotiation.bind(this)
     this.pc.onicecandidate = (e) => e.candidate && this.onICECandidate(e.candidate)
-    this.pc.onicecandidateerror = (e) => {
-      // console.warn(e)
-      // ingore
-    }
+    this.pc.onicecandidateerror = () => {}
     this.pc.onconnectionstatechange = this.handleConnectionStateChange.bind(this)
+
+    // 🛡️ ICE 自动重启（换网存活）
+    this.pc.oniceconnectionstatechange = () => {
+      const state = this.pc.iceConnectionState
+      if ((state === 'disconnected' || state === 'failed') && !this.isRestartingIce) {
+        this.isRestartingIce = true
+        console.warn('[PDC] ICE 连接丢失，尝试自动重启...')
+        try {
+          this.pc.restartIce()
+        } catch (e) {
+          console.error('ICE 重启失败', e)
+          this.dispose()
+          this.onDispose()
+        }
+      } else if (state === 'connected' || state === 'completed') {
+        this.isRestartingIce = false
+      }
+    }
   }
 
   private handleDataChannel(e: RTCDataChannelEvent): void {
@@ -82,7 +84,8 @@ export class PeerDataChannel {
   }
 
   private handleConnectionStateChange(): void {
-    if (['closed', 'disconnected', 'failed'].includes(this.pc.connectionState)) {
+    // 🛡️ 注意：disconnected 不再直接销毁，留给 ICE 重启机会
+    if (['closed', 'failed'].includes(this.pc.connectionState)) {
       this.dispose()
       this.onDispose()
     } else if (this.pc.connectionState === 'connected') {
@@ -108,23 +111,17 @@ export class PeerDataChannel {
         const endTime = Date.now()
         const b = new Blob(receiveData.chunks)
         const result = receiveData.type === 'string' ? await b.text() : await b.arrayBuffer()
-        await this.onReceive(result, {
-          size: b.size,
-          duration: endTime - receiveData.startTime
-        })
+        await this.onReceive(result, { size: b.size, duration: endTime - receiveData.startTime })
         receiveData.chunks = []
       }
     }
   }
 
   /**
-   * 发送数据，注意只能串行调用
-   * @param data 要发送的数据
+   * 发送数据（串行调用）—— 恢复原版已验证的背压逻辑，修复死锁
    */
   public async sendData(data: ArrayBuffer | string): Promise<void> {
-    if (!this.dc) {
-      throw new Error('Data channel not initialized')
-    }
+    if (!this.dc) throw new Error('Data channel not initialized')
 
     return new Promise<void>((resolve, reject) => {
       this.sendPromiseReject = reject
@@ -157,12 +154,9 @@ export class PeerDataChannel {
     })
   }
 
-  /**
-   * 重协商 SDP
-   */
   private async reNegotiation(): Promise<void> {
     return this.pc
-      .createOffer()
+      .createOffer({ iceRestart: this.isRestartingIce })
       .then((offer) => this.pc.setLocalDescription(offer))
       .then(() => (this.pc.localDescription ? this.onSDP(this.pc.localDescription) : undefined))
       .catch((e) => {
@@ -172,10 +166,6 @@ export class PeerDataChannel {
       })
   }
 
-  /**
-   * 设置远程 SDP
-   * @param sdp SDP描述
-   */
   public async setRemoteSDP(sdp: RTCSessionDescriptionInit): Promise<void> {
     try {
       await this.pc.setRemoteDescription(sdp)
@@ -191,26 +181,14 @@ export class PeerDataChannel {
     }
   }
 
-  /**
-   * 添加一个 ICE candidate
-   * @param candidate ICE candidate
-   */
   public async addICECandidate(candidate: RTCIceCandidateInit): Promise<void> {
     await this.pc.addIceCandidate(candidate)
   }
 
-  /**
-   * 检查连接是否断开
-   * @returns 如果连接则为 True，否则为 false
-   */
   public isConnected(): boolean {
     return this.pc.connectionState === 'connected'
   }
 
-  /**
-   * 获取接收缓存的大小
-   * @returns 接收缓存的大小
-   */
   public getReceivedBufferSize(): number {
     return this.receiveData.chunks.reduce(
       (size, dat) => size + (typeof dat === 'string' ? dat.length : dat.byteLength),
@@ -218,20 +196,15 @@ export class PeerDataChannel {
     )
   }
 
-  /**
-   * 关闭对等连接并清理资源
-   */
   public dispose(): void {
     if (this.sendPromiseReject) {
       this.sendPromiseReject()
       this.sendPromiseReject = null
     }
-
     if (this.dc) {
       this.dc.close()
       this.dc = null
     }
-
     this.pc.onicecandidate = null
     this.pc.ontrack = null
     this.pc.ondatachannel = null
@@ -252,7 +225,6 @@ export class EventQueue<T> {
   }
 
   public enqueue(e: T): void {
-    // 每次把新任务链到上一个任务后面
     this.tail = this.tail
       .then(() => this.handler(e))
       .catch((error) => {

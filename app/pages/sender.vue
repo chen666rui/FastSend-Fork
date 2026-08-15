@@ -6,6 +6,28 @@ const { peerUserInfo, code, totalTransmittedBytes, totalSpeed, durationTimeStr, 
   storeToRefs(senderStore)
 const qrcodeElm = ref()
 const formatSize = humanFileSize
+useDoneNotify(() => status.value.isDone)
+// ⏱️ 发送端 ETA：基于当前文件
+const eta = computed(() => {
+  const f = curFile.value as any
+  if (!f || !f.speed) return ''
+  const remain = (f.size || 0) - (f.transmittedBytes || 0)
+  if (remain <= 0) return ''
+  const s = Math.round(remain / f.speed)
+  return s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`
+})
+const { push: pushHistory } = useTransferHistory()
+watch(
+  () => status.value.isDone,
+  (d) => {
+    if (d)
+      pushHistory({
+        role: location.pathname.includes('recipient') ? 'receive' : 'send',
+        size: totalTransmittedBytes.value,
+        name: curFile.value?.name || '传输任务'
+      })
+  }
+)
 
 useSeoMeta({
   title: t('sender')
@@ -88,6 +110,7 @@ onUnmounted(() => {
 
     <!-- 连接成功 -->
     <div v-else>
+      <div class="flex justify-end px-4 mt-2"><RttBars /></div>
       <!-- 接入的用户 -->
       <div class="flex flex-col items-center mt-4">
         <div class="flex-col items-center py-4 px-8 rounded-lg shadow flex">
@@ -153,6 +176,13 @@ onUnmounted(() => {
             ><span class="mx-1">/</span><span>{{ formatSize(curFile.size) }}</span>
           </p>
         </div>
+
+        <!-- 🆙 实时速度曲线 -->
+        <SpeedChart :speed="totalSpeed" />
+        <p v-if="eta" class="text-center text-xs text-neutral-500 mt-1">
+          {{ $i18n.locale === 'zh' ? `⏱️ 预计还需 ${eta}` : `⏱️ ETA ${eta}` }}
+        </p>
+        <IntegrityBadge :dir="$route.path.includes('recipient') ? 'receive' : 'send'" />
 
         <div class="text-center mt-8">
           <NuxtLink :to="localePath('/')">

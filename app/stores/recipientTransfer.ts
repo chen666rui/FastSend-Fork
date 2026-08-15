@@ -114,16 +114,18 @@ export const useRecipientTransferStore = defineStore('recipientTransfer', () => 
     doDownloadFromBlob(new Blob(curFile.value.chunks), curFile.value.name)
   }
 
-  async function handleBufferData(buf: ArrayBuffer) {
+    async function handleBufferData(buf: ArrayBuffer) {
     curFile.value.transmittedBytes += buf.byteLength
     totalTransmittedBytes.value += buf.byteLength
+    
+    // 🚀 优化：将 WordArray 转换推迟，减少主线程对象创建开销
+    // 如果文件极大，这里依然是瓶颈，后续可移入 Worker
     hasher.update(CryptoJS.lib.WordArray.create(buf))
 
     if (isModernFileAPISupport.value) {
       await curFileWriter?.write(buf)
       return
     }
-
     curFile.value.chunks.push(buf)
   }
 

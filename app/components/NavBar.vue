@@ -20,6 +20,12 @@ const themes = [
 // -1 代表默认黑白色
 const currentTheme = ref(-1)
 
+// ===== 按键音效开关 =====
+const keySoundOn = ref(false)
+function switchKeySound() {
+  localStorage.setItem('fs-key-sound', keySoundOn.value ? 'on' : 'off')
+}
+
 // 生成主题覆盖样式
 function buildThemeCss(color: string, contrast: string) {
   return `
@@ -59,7 +65,25 @@ function applyTheme(index: number) {
   localStorage.setItem('fs-theme-index', String(index))
 }
 
-// 恢复默认（移除覆盖样式，回到黑白）
+// ===== 自定义取色 =====
+const customColor = ref('#0ea5e9')
+function applyCustom(color: string) {
+  currentTheme.value = -2
+  customColor.value = color
+  let styleEl = document.getElementById('fs-theme-style') as HTMLStyleElement | null
+  if (!styleEl) {
+    styleEl = document.createElement('style')
+    styleEl.id = 'fs-theme-style'
+    document.head.appendChild(styleEl)
+  }
+  styleEl.textContent = buildThemeCss(color, '#ffffff')
+  localStorage.setItem('fs-theme-index', 'custom:' + color)
+}
+function onCustomColor(e: Event) {
+  applyCustom((e.target as HTMLInputElement).value)
+}
+
+// 恢复默认
 function resetTheme() {
   localStorage.removeItem('fs-theme-index')
   currentTheme.value = -1
@@ -123,14 +147,18 @@ function clearUserInfo() {
 }
 
 onMounted(() => {
+  keySoundOn.value = localStorage.getItem('fs-key-sound') === 'on'
   window.addEventListener('scroll', () => {
     isBgBlur.value = getScrollTop() > 64
   })
   userStore.initializeFromStorage()
   tmpNickname.value = userInfo.value.nickname
   // 恢复上次保存的主题色（没保存过 = 默认黑白）
-  const saved = localStorage.getItem('fs-theme-index')
-  if (saved !== null && saved !== '-1') applyTheme(parseInt(saved))
+   const saved = localStorage.getItem('fs-theme-index')
+  if (saved) {
+    if (saved.startsWith('custom:')) applyCustom(saved.slice(7))
+    else if (saved !== '-1') applyTheme(parseInt(saved))
+  }
 })
 </script>
 
@@ -258,6 +286,16 @@ onMounted(() => {
         <Divider class="my-0" />
         <p class="text-sm">主题色</p>
         <div class="flex flex-row gap-2">
+        <label class="flex items-center gap-2 text-sm cursor-pointer mt-1">
+          <input
+            type="color"
+            :value="customColor"
+            class="w-7 h-7 rounded cursor-pointer border-none bg-transparent p-0"
+            @input="onCustomColor"
+          />
+          <span>自定义颜色</span>
+        </label>
+
           <button
             v-for="(t, i) in themes"
             :key="t.name"
@@ -268,6 +306,12 @@ onMounted(() => {
             @click="applyTheme(i)"
           ></button>
         </div>
+        <Divider class="my-0" />
+        <div class="flex flex-row items-center justify-between">
+          <p class="text-sm">按键音效</p>
+          <ToggleSwitch v-model="keySoundOn" @change="switchKeySound" />
+        </div>
+
         <Button severity="secondary" size="small" outlined rounded @click="resetTheme">
           恢复默认
         </Button>

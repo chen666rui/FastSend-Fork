@@ -18,6 +18,27 @@ const {
   syncDirStatus
 } = storeToRefs(recipientStore)
 const formatSize = humanFileSize
+useDoneNotify(() => status.value.isDone)
+const eta = computed(() => {
+  const total = (totalFileSize as any)?.value ?? 0
+  const remain = total - totalTransmittedBytes.value
+  if (!totalSpeed.value || remain <= 0) return ''
+  const s = Math.round(remain / totalSpeed.value)
+  return s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`
+})
+
+const { push: pushHistory } = useTransferHistory()
+watch(
+  () => status.value.isDone,
+  (d) => {
+    if (d)
+      pushHistory({
+        role: location.pathname.includes('recipient') ? 'receive' : 'send',
+        size: totalTransmittedBytes.value,
+        name: curFile.value?.name || '传输任务'
+      })
+  }
+)
 
 useSeoMeta({
   title: t('recipient')
@@ -241,6 +262,13 @@ onUnmounted(() => {
             ><span class="mx-1">/</span><span>{{ formatSize(totalFileSize) }}</span>
           </div>
         </div>
+
+                 <div class="flex justify-end"><RttBars /></div>
+        <SpeedChart :speed="totalSpeed" />
+        <p v-if="eta" class="text-center text-xs text-neutral-500 mt-1">
+          {{ $i18n.locale === 'zh' ? `⏱️ 预计还需 ${eta}` : `⏱️ ETA ${eta}` }}
+        </p>
+        <IntegrityBadge dir="receive" />
 
         <!-- 操作按钮 -->
         <div v-if="status.warn.code === 0" class="my-16">
