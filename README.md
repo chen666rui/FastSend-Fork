@@ -8,6 +8,9 @@
 </p>
 
 
+##                          中文 | [English](./README.en.md)
+
+
 > -  注:此图片为1.0.0Bata版图片,不为新版本图片,仅供参考
 <p align="center">
   <img src="./public/image.png" />
