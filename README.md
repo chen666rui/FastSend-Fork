@@ -20,6 +20,30 @@ FastSend重置版是基于FastSend的分支，基于 WebRTC 技术的点对点�
 
 🌐 在线体验：[暂无]
 
+## 🔀 相比原版的改进
+
+### 性能与内核
+- **Nuxt 4 架构**：迁移 `app/` 目录约定，前后端分层更清晰，构建更快
+- **零拷贝流式读取**：`File.stream()` 替代 `slice().arrayBuffer()`，GB 级大文件主线程不阻塞
+- **ICE 自动重启**：网络闪断 / 换网传输不死
+- **构建瘦身**：关闭 devtools、sitemap zeroRuntime，构建时长大幅缩短
+
+### UI 交互
+- 主题系统：5 预设色 + 自定义取色器 + 暗黑模式 + 一键恢复
+- 机械键盘音效、完成“叮”声 + 系统通知
+- 可视化仪表盘：直连雷达 / RTT 信号条 / 速度曲线 / ETA / SHA-256 完整性指纹
+- 智能取件、传输历史、新页面中英双语
+
+### 修复的原版 Bug
+- 修复 DataChannel 背压事件不触发导致的传输死锁（“点火器”机制）
+- 修复 `File.stream()` 的 `Uint8Array.buffer` 内存视图偏移陷阱
+- 修复大文件传输时主线程同步读取造成的 UI 卡顿
+- 修复 Node 24 下自签名证书脚本的异步 / CJS 兼容问题
+
+### 部署与安全
+- 自动 HTTPS（含局域网 IP SAN 的自签名证书）、`start.bat` 一键启动、隧道守护自动重启
+- 安全响应头全套：HSTS / nosniff / X-Frame-Options / Referrer-Policy
+
 
 ## 所需环境
 
