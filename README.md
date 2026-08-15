@@ -145,8 +145,11 @@ node .output/server/index.mjs
 
 **ZMOU058**
 
-## 👨‍💻 原作者
-**SHOUCHEN_**
+# 🙏 特别致谢
+本项目的核心功能与基础架构均来自 **ShouChenICU** 开发的开源项目：
+- **原项目地址**：[ShouChenICU/FastSend](https://github.com/ShouChenICU/FastSend)
+- **原项目体验**：[fastsend.ing](https://fastsend.ing)
+
 
 
 ## 📝 开源协议
