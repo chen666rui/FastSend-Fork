@@ -6,7 +6,8 @@ on:
   pull_request:
 
 jobs:
-  build:
+  # 🔵 引擎一：npm 流水线（与本地/CF Pages 同构，已验证能绿）
+  build-npm:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -16,8 +17,29 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
+      - name: Install (npm)
         run: npm install --legacy-peer-deps
 
-      - name: Build
+      - name: Build (npm)
         run: npm run build
+
+  # 🟣 引擎二：Yarn 4 流水线（尊重项目“法定”包管理器 + resolutions 锁版本）
+  build-yarn:
+    runs-on: ubuntu-latest
+    env:
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: 0
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack (activate Yarn 4)
+        run: corepack enable
+
+      - name: Install (Yarn)
+        run: yarn install
+
+      - name: Build (Yarn)
+        run: yarn build
