@@ -13,7 +13,7 @@
 
 > -  注:此图片为1.0.0Bata版图片,不为新版本图片,仅供参考
 <p align="center">
-  <img src="./public/image.png" />
+  <img src="./public/image.webp" />
 </p>
 
 ## 📖 项目介绍
@@ -66,7 +66,7 @@ FastSend-Fork是基于FastSend的分支，基于 WebRTC 技术的点对点文件
 
 > -  注:此图片为1.0.0Bata版图片,不为新版本图片,仅供参考
 <p align="center">
-  <img src="./public/color.png" />
+  <img src="./public/color.webp" />
 </p>
 
 ## 📅 更新日志2026-08-15 （v1.0.0正式版）
@@ -194,7 +194,7 @@ node .output/server/index.mjs
 - 必填:第12行的双引号里填cloudflare的路径并确认11行的端口是否正确
 - 选填（可将每次的内网穿透信息发送到邮箱）：第15-18行的信息发件人邮箱在双引号里填你的邮箱，授权码如图:
 <p align="center">
-  <img src="./public/sqm.png" />
+  <img src="./public/sqm.webp" />
 </p>
 开启邮箱的IMAP/SMTP服务复制出现的授权码（只显示一次）填写到授权码对应的双引号里，下面服务器地址按注释填到双引号里，其他的邮箱一般都在授权码那一页，接受连接的邮箱也填自己的邮箱，完成后保存并退出。
 
