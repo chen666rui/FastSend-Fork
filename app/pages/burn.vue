@@ -20,6 +20,10 @@ const ZH = {
   decrypted: '🔐 解密成功 · 链接已从地址栏销毁',
   burnNow: '立即焚烧',
   watermarkWarn: '⚠️ 已启用截图威慑：页面布满溯源水印，关闭后内容不可恢复',
+  passPlaceholder: '口头暗语（可选，留空 = 无暗语）',
+  needPass: '此机密设有口头暗语',
+  unlock: '解锁',
+  wrongPass: '暗语错误，无法解锁',
   backHome: '回主页'
 }
 const EN = {
@@ -36,6 +40,11 @@ const EN = {
   decrypted: '🔐 Decrypted · link destroyed from address bar',
   burnNow: 'Burn Now',
   watermarkWarn: '⚠️ Screenshot deterrent active: trace watermarks cover the page; content is unrecoverable after closing',
+
+  passPlaceholder: 'Passphrase (optional, empty = none)',
+  needPass: 'This secret is locked by a passphrase',
+  unlock: 'Unlock',
+  wrongPass: 'Wrong passphrase',
   backHome: 'Back Home'
 }
 const L = computed(() => (locale.value === 'zh' ? ZH : EN))
@@ -47,7 +56,66 @@ const state = ref<'idle' | 'loading' | 'ok' | 'expired' | 'broken'>('idle')
 const burned = ref(false)
 const wmTime = new Date().toLocaleString()
 const MAX = 2000
+const passphrase = ref('')
+const needPass = ref(false)
+const pending = ref<{ d: Uint8Array; iv: Uint8Array; bundle: Uint8Array | null } | null>(null)
+const W_MAGIC = 'w1.'
 
+async function deriveWrapKey(pass: string, salt: Uint8Array): Promise<CryptoKey> {
+  const base = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(pass),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  )
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: salt as BufferSource, iterations: 100000, hash: 'SHA-256' },
+    base,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  )
+}
+
+async function reveal(rawKey: Uint8Array) {
+  const p = pending.value
+  if (!p) return
+  state.value = 'loading'
+  try {
+    const key = await crypto.subtle.importKey('raw', rawKey as BufferSource, { name: 'AES-GCM' }, false, ['decrypt'])
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: p.iv as BufferSource }, key, p.d as BufferSource)
+    const stream = new Blob([new Uint8Array(plain)]).stream().pipeThrough(new DecompressionStream('deflate'))
+    const json = JSON.parse(await new Response(stream).text())
+    if (json.exp && Date.now() > json.exp) {
+      state.value = 'expired'
+    } else {
+      revealed.value = json.c
+      state.value = 'ok'
+      history.replaceState(null, '', location.pathname)
+    }
+  } catch {
+    state.value = 'broken'
+  }
+}
+
+async function unlock() {
+  const p = pending.value
+  if (!p || !p.bundle) return
+  const salt = p.bundle.slice(0, 16)
+  const kiv = p.bundle.slice(16, 28)
+  const kct = p.bundle.slice(28)
+  try {
+    const wk = await deriveWrapKey(passphrase.value, salt)
+    const rawKey = new Uint8Array(
+      await crypto.subtle.decrypt({ name: 'AES-GCM', iv: kiv as BufferSource }, wk, kct as BufferSource)
+    )
+    needPass.value = false
+    await reveal(rawKey)
+  } catch {
+    toast.add({ severity: 'error', summary: '🔒', detail: L.value.wrongPass, life: 4e3 })
+  }
+}
 useSeoMeta({ title: computed(() => L.value.title) })
 
 const b64e = (buf: ArrayBuffer | Uint8Array) => {
@@ -72,10 +140,22 @@ async function generate() {
     .pipeThrough(new CompressionStream('deflate'))
   const plain = await new Response(stream).arrayBuffer()
   const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plain)
-  const rawKey = await crypto.subtle.exportKey('raw', key)
-  shareLink.value = `${location.origin}${localePath('/burn')}?d=${b64e(ct)}&iv=${b64e(iv)}#k=${b64e(rawKey)}`
-}
+  const rawKey = new Uint8Array(await crypto.subtle.exportKey('raw', key))
 
+  let kPart = b64e(rawKey)
+  if (passphrase.value) {
+    const salt = crypto.getRandomValues(new Uint8Array(16))
+    const kiv = crypto.getRandomValues(new Uint8Array(12))
+    const wk = await deriveWrapKey(passphrase.value, salt)
+    const kct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: kiv }, wk, rawKey))
+    const bundle = new Uint8Array(16 + 12 + kct.length)
+    bundle.set(salt, 0)
+    bundle.set(kiv, 16)
+    bundle.set(kct, 28)
+    kPart = W_MAGIC + b64e(bundle)
+  }
+  shareLink.value = `${location.origin}${localePath('/burn')}?d=${b64e(ct)}&iv=${b64e(iv)}#k=${kPart}`
+}
 async function copyLink() {
   await navigator.clipboard.writeText(shareLink.value)
   toast.add({ severity: 'success', summary: '✅', detail: L.value.linkReady })
@@ -91,24 +171,13 @@ onMounted(async () => {
   const ivs = `${route.query.iv || ''}`
   const k = location.hash.startsWith('#k=') ? location.hash.slice(3) : ''
   if (!d || !ivs || !k) return
-  state.value = 'loading'
-  try {
-    const key = await crypto.subtle.importKey('raw', b64d(k), { name: 'AES-GCM' }, false, ['decrypt'])
-    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64d(ivs) }, key, b64d(d))
-    const stream = new Blob([new Uint8Array(plain)])
-      .stream()
-      .pipeThrough(new DecompressionStream('deflate'))
-    const json = JSON.parse(await new Response(stream).text())
-    if (json.exp && Date.now() > json.exp) {
-      state.value = 'expired'
-    } else {
-      revealed.value = json.c
-      state.value = 'ok'
-      history.replaceState(null, '', location.pathname)
-    }
-  } catch {
-    state.value = 'broken'
+  if (k.startsWith(W_MAGIC)) {
+    pending.value = { d: b64d(d), iv: b64d(ivs), bundle: b64d(k.slice(W_MAGIC.length)) }
+    needPass.value = true
+    return
   }
+  pending.value = { d: b64d(d), iv: b64d(ivs), bundle: null }
+  await reveal(b64d(k))
 })
 </script>
 
@@ -124,6 +193,13 @@ onMounted(async () => {
     <template v-else-if="route.query.d">
       <h1 class="text-2xl tracking-wider text-center mt-6">🔥 {{ L.title }}</h1>
       <div v-if="state === 'loading'" class="text-center py-16 text-sm">{{ L.decrypting }}</div>
+   <div v-else-if="needPass" class="text-center py-10 md:w-[70%] md:mx-auto">
+     <p class="text-xl">🔒 {{ L.needPass }}</p>
+     <InputPassword v-model="passphrase" class="w-full mt-6" :placeholder="L.passPlaceholder" toggleMask />
+     <Button rounded severity="contrast" class="w-full tracking-wider mt-4" @click="unlock">
+       <Icon name="solar:lock-keyhole-minimalistic-linear" class="mr-2" />{{ L.unlock }}
+     </Button>
+   </div>
       <div v-else-if="state === 'expired'" class="text-center py-16">
         <p class="text-xl">{{ L.expired }}</p>
       </div>
@@ -167,6 +243,7 @@ onMounted(async () => {
         class="w-full mt-6"
       />
       <p class="text-right text-xs text-neutral-500 mt-1">{{ inputText.length }} / {{ MAX }}</p>
+   <InputPassword v-model="passphrase" class="w-full mt-3" :placeholder="L.passPlaceholder" toggleMask />
       <Button
         rounded
         severity="contrast"
@@ -179,7 +256,7 @@ onMounted(async () => {
         <p class="text-sm mb-2">{{ L.linkReady }}</p>
         <div class="flex gap-2">
           <InputText :model-value="shareLink" readonly class="flex-1 text-xs" />
-          <Button severity="contrast" size="small" @click="copyLink"
+                <Button severity="contrast" size="small" aria-label="copy link" @click="copyLink"
             ><Icon name="solar:copy-linear"
           /></Button>
         </div>

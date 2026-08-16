@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import hljs from 'highlight.js/lib/common'
+import 'highlight.js/styles/github-dark.min.css'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 const route = useRoute()
 const localePath = useLocalePath()
 const toast = useToast()
@@ -19,6 +23,9 @@ const ZH = {
   fromFriend: '字 · 来自朋友的传送',
   copyText: '复制文本',
   textCopiedDetail: '文本已在剪贴板',
+  modeRaw: '原文',
+  modeCode: '代码高亮',
+  modeMd: 'Markdown',
   backHome: '回主页'
 }
 const EN = {
@@ -36,6 +43,9 @@ const EN = {
   fromFriend: 'chars · teleported from a friend',
   copyText: 'Copy Text',
   textCopiedDetail: 'Text copied to clipboard',
+  modeRaw: 'Raw',
+  modeCode: 'Code',
+  modeMd: 'Markdown',
   backHome: 'Back Home'
 }
 const L = computed(() => (locale.value === 'zh' ? ZH : EN))
@@ -46,6 +56,13 @@ const receivedText = ref('')
 const isDecoding = ref(false)
 const decodeError = ref(false)
 const MAX = 2000
+const mode = ref<'raw' | 'code' | 'md'>('raw')
+const htmlCode = computed(() =>
+  mode.value === 'code' ? hljs.highlightAuto(receivedText.value).value : ''
+)
+const htmlMd = computed(() =>
+  mode.value === 'md' ? DOMPurify.sanitize(marked.parse(receivedText.value) as string) : ''
+)
 
 useSeoMeta({ title: computed(() => L.value.title) })
 
@@ -126,9 +143,26 @@ onMounted(async () => {
             <Icon name="solar:copy-linear" class="mr-1" />{{ L.copyText }}
           </Button>
         </div>
-        <pre
-          class="whitespace-pre-wrap break-words text-sm p-4 rounded-xl bg-white/80 dark:bg-zinc-900/80 border border-neutral-200 dark:border-zinc-800 leading-6"
-        >{{ receivedText }}</pre>
+               <div class="flex gap-2 mb-2">
+         <Button size="small" rounded :severity="mode === 'raw' ? 'contrast' : 'secondary'" @click="mode = 'raw'">{{ L.modeRaw }}</Button>
+         <Button size="small" rounded :severity="mode === 'code' ? 'contrast' : 'secondary'" @click="mode = 'code'">{{ L.modeCode }}</Button>
+         <Button size="small" rounded :severity="mode === 'md' ? 'contrast' : 'secondary'" @click="mode = 'md'">{{ L.modeMd }}</Button>
+       </div>
+       <pre
+         v-if="mode === 'raw'"
+         class="whitespace-pre-wrap break-words text-sm p-4 rounded-xl bg-white/80 dark:bg-zinc-900/80 border border-neutral-200 dark:border-zinc-800 leading-6"
+         >{{ receivedText }}</pre
+       >
+       <pre
+         v-else-if="mode === 'code'"
+         class="whitespace-pre-wrap break-words text-sm p-4 rounded-xl bg-[#0d1117] text-neutral-100 border border-neutral-700 leading-6 overflow-auto"
+         ><code v-html="htmlCode"></code
+       ></pre>
+       <div
+         v-else
+         class="md-body text-sm p-4 rounded-xl bg-white/80 dark:bg-zinc-900/80 border border-neutral-200 dark:border-zinc-800"
+         v-html="htmlMd"
+       ></div>
       </div>
     </template>
 
@@ -157,7 +191,7 @@ onMounted(async () => {
         <p class="text-sm mb-2">{{ L.linkReady }}</p>
         <div class="flex gap-2">
           <InputText :model-value="shareLink" readonly class="flex-1 text-xs" />
-          <Button severity="contrast" size="small" @click="copyLink"
+                <Button severity="contrast" size="small" aria-label="copy link" @click="copyLink"
             ><Icon name="solar:copy-linear"
           /></Button>
         </div>

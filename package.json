@@ -7,15 +7,20 @@
     "dev": "nuxt dev --host",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@isaacs/ttlcache": "^2.1.4",
     "@primevue/forms": "^4.5.5",
     "@vite-pwa/nuxt": "^1.1.1",
     "crypto-js": "^4.2.0",
+    "dompurify": "^3.4.13",
     "hash-wasm": "^4.12.0",
+    "highlight.js": "^11.12.0",
     "http-proxy": "^1.18.1",
+    "marked": "^18.0.9",
     "nuxt": "^4.5.2",
     "pinia": "^3.0.4",
     "primevue": "^4.5.5",
@@ -27,6 +32,7 @@
     "webrtc-adapter": "^9.0.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@nuxt/icon": "^2.2.1",
     "@nuxtjs/color-mode": "^4.0.0",
     "@nuxtjs/i18n": "^10.2.4",
@@ -37,8 +43,11 @@
     "@types/crypto-js": "^4.2.2",
     "@types/qrcode": "^1.5.6",
     "@types/wicg-file-system-access": "^2023.10.7",
+    "eslint": "^10.8.1",
     "prettier": "^3.8.2",
-    "tailwindcss": "^3.4.19"
+    "sharp": "^0.35.3",
+    "tailwindcss": "^3.4.19",
+    "vitest": "^4.1.10"
   },
   "resolutions": {
     "rollup": "^4.60.0",

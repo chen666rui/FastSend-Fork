@@ -2,7 +2,7 @@
 const { t } = useI18n()
 const localePath = useLocalePath()
 const senderStore = useSenderTransferStore()
-const { peerUserInfo, code, totalTransmittedBytes, totalSpeed, durationTimeStr, curFile, status } =
+const { peerUserInfo, code, totalTransmittedBytes, totalSpeed, durationTimeStr, curFile, status, isPaused } =
   storeToRefs(senderStore)
 const qrcodeElm = ref()
 const formatSize = humanFileSize
@@ -184,14 +184,29 @@ onUnmounted(() => {
         </p>
         <IntegrityBadge :dir="$route.path.includes('recipient') ? 'receive' : 'send'" />
 
-        <div class="text-center mt-8">
-          <NuxtLink :to="localePath('/')">
-            <Button outlined severity="danger" class="tracking-wider"
-              ><Icon name="solar:stop-linear" class="mr-2" />{{ t('btn.terminate') }}</Button
-            ></NuxtLink
-          >
-        </div>
-      </div>
+             <div class="flex gap-4 mt-8">
+       <Button
+         :severity="isPaused ? 'success' : 'secondary'"
+         outlined
+         class="flex-1 tracking-wider"
+         @click="senderStore.setPaused(!isPaused)"
+         ><Icon :name="isPaused ? 'solar:play-linear' : 'solar:pause-linear'" class="mr-2" />{{
+           isPaused
+             ? $i18n.locale === 'zh'
+               ? '继续'
+               : 'Resume'
+             : $i18n.locale === 'zh'
+               ? '暂停'
+               : 'Pause'
+         }}</Button
+       >
+       <NuxtLink :to="localePath('/')">
+         <Button outlined severity="danger" class="tracking-wider"
+           ><Icon name="solar:stop-linear" class="mr-2" />{{ t('btn.terminate') }}</Button
+         ></NuxtLink
+       >
+     </div>
+</div>
 
       <!-- 发送完毕 -->
       <div v-else class="flex flex-col items-center justify-center py-10 gap-4">

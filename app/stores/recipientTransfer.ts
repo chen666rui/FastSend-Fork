@@ -42,6 +42,50 @@ export const useRecipientTransferStore = defineStore('recipientTransfer', () => 
   const status = ref<RecipientStatusState>(createRecipientStatusState())
   const syncDirStatus = ref<SyncDirState>(createSyncDirState())
 
+
+  const previewUrl = ref('')
+  const classifyOn = ref(false)
+  let previewChunks: ArrayBuffer[] = []
+  let previewing = false
+  const PREVIEW_RE = /\.(png|jpe?g|gif|webp|avif|mp4|webm|mp3|wav|pdf|txt)$/i
+
+  function previewMime(name: string): string {
+    const m = name.match(/\.(png|jpe?g|gif|webp|avif|mp4|webm|mp3|wav|pdf|txt)$/i)?.[1]?.toLowerCase()
+    const map: Record<string, string> = {
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+      webp: 'image/webp', avif: 'image/avif', mp4: 'video/mp4', webm: 'video/webm',
+      mp3: 'audio/mpeg', wav: 'audio/wav', pdf: 'application/pdf', txt: 'text/plain'
+    }
+    return map[m || ''] || 'application/octet-stream'
+  }
+
+  // ㉖ 同名文件自动改名 (1)/(2)…
+  async function getUniqueFileHandle(dir: FileSystemDirectoryHandle, name: string) {
+    const dot = name.lastIndexOf('.')
+    const base = dot > 0 ? name.slice(0, dot) : name
+    const ext = dot > 0 ? name.slice(dot) : ''
+    let candidate = name
+    for (let i = 1; i < 100; i++) {
+      try {
+        await dir.getFileHandle(candidate)
+        candidate = `${base}(${i})${ext}`
+      } catch {
+        break
+      }
+    }
+    return dir.getFileHandle(candidate, { create: true })
+  }
+
+  // ㉗ 按扩展名分类
+  function classifyFile(name: string): string {
+    if (/\.(png|jpe?g|gif|webp|avif|bmp|svg)$/i.test(name)) return '图片'
+    if (/\.(mp4|webm|mkv|avi|mov)$/i.test(name)) return '视频'
+    if (/\.(mp3|wav|flac|aac|ogg)$/i.test(name)) return '音频'
+    if (/\.(docx?|xlsx?|pptx?|pdf|txt|md)$/i.test(name)) return '文档'
+    if (/\.(zip|rar|7z|tar|gz)$/i.test(name)) return '压缩包'
+    return '其他'
+  }
+
   const hasher = CryptoJS.algo.MD5.create()
 
   let calcSpeedJobId: ReturnType<typeof setInterval> | undefined
@@ -121,6 +165,8 @@ export const useRecipientTransferStore = defineStore('recipientTransfer', () => 
     // 🚀 优化：将 WordArray 转换推迟，减少主线程对象创建开销
     // 如果文件极大，这里依然是瓶颈，后续可移入 Worker
     hasher.update(CryptoJS.lib.WordArray.create(buf))
+    if (previewing) previewChunks.push(buf)
+
 
     if (isModernFileAPISupport.value) {
       await curFileWriter?.write(buf)
@@ -164,23 +210,26 @@ export const useRecipientTransferStore = defineStore('recipientTransfer', () => 
       return
     }
 
-    if (obj.type === 'files') {
-      peerFilesInfo.value = obj.data
-      if (peerFilesInfo.value.type === 'transFile') {
-        initCurFile()
-        totalFileSize.value = curFile.value.size
-      } else if (!isModernFileAPISupport.value) {
-        status.value.warn.code = -1
-        status.value.warn.msg = '不支持目录传输'
-        await pdc?.sendData(JSON.stringify({ type: 'err', data: -1 }))
-        dispose()
-      } else if (peerFilesInfo.value.type === 'syncDir') {
-        syncDirStatus.value.folderName = peerFilesInfo.value.root
-      }
-      status.value.isWaitingPeerConfirm = false
-      return
+     if (obj.type === 'files') {
+    peerFilesInfo.value = obj.data
+    if (peerFilesInfo.value.type === 'transFile') {
+      initCurFile()
+      totalFileSize.value = curFile.value.size
+      previewing = PREVIEW_RE.test(curFile.value.name) && curFile.value.size <= 300 * 1024 * 1024
+      previewChunks = []
+      previewUrl.value = ''
+    } else if (!isModernFileAPISupport.value) {
+      status.value.warn.code = -1
+      status.value.warn.msg = '不支持目录传输'
+      await pdc?.sendData(JSON.stringify({ type: 'err', data: -1 }))
+      dispose()
+    } else if (peerFilesInfo.value.type === 'syncDir') {
+      syncDirStatus.value.folderName = peerFilesInfo.value.root
     }
-
+    status.value.isWaitingPeerConfirm = false
+    return
+  }
+      
     if (obj.type === 'fileDone') {
       const hash = hasher.finalize().toString(CryptoJS.enc.Base64)
       if (hash !== obj.data) {
@@ -212,6 +261,12 @@ export const useRecipientTransferStore = defineStore('recipientTransfer', () => 
       // 校验通过，关闭写入流
       await closeCurFileWriter()
       transmittedCount.value++
+      if (previewing && previewChunks.length) {
+        previewUrl.value = URL.createObjectURL(
+          new Blob(previewChunks as BlobPart[], { type: previewMime(curFile.value.name) })
+        )
+        previewChunks = []
+      }
 
       reqFileResolveFn?.()
       reqFileResolveFn = undefined
@@ -507,8 +562,10 @@ export const useRecipientTransferStore = defineStore('recipientTransfer', () => 
         rootDirDH = await window.showDirectoryPicker()
         startTime.value = Date.now()
         calcSpeedJobId = setInterval(calcSpeedFn, 1e3)
-        for (const key of waitReceiveFileList.value) {
-          const paths = key.split('/')
+         for (const key of waitReceiveFileList.value) {
+          const paths = classifyOn.value
+            ? [classifyFile(key), key.split('/').pop() || key]
+            : key.split('/')
           initCurFile(key)
           receiveFileIndex.value++
           let curFolder = rootDirDH
@@ -517,9 +574,10 @@ export const useRecipientTransferStore = defineStore('recipientTransfer', () => 
               create: true
             })
           }
-          const curFH = await curFolder?.getFileHandle(getPathSegment(paths[paths.length - 1]), {
-            create: true
-          })
+          const curFH = await getUniqueFileHandle(
+            curFolder!,
+            getPathSegment(paths[paths.length - 1])
+          )
           curFileWriter = await curFH?.createWritable()
           await requestFile(key)
         }
@@ -666,6 +724,8 @@ export const useRecipientTransferStore = defineStore('recipientTransfer', () => 
     curFile,
     status,
     syncDirStatus,
+    previewUrl,
+    classifyOn,
     initialize,
     cleanup,
     redirectHomeIfInvalidCode,

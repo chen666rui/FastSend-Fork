@@ -15,7 +15,9 @@ const {
   remainingTimeStr,
   curFile,
   status,
-  syncDirStatus
+  syncDirStatus,
+  previewUrl,
+  classifyOn
 } = storeToRefs(recipientStore)
 const formatSize = humanFileSize
 useDoneNotify(() => status.value.isDone)
@@ -272,6 +274,15 @@ onUnmounted(() => {
 
         <!-- 操作按钮 -->
         <div v-if="status.warn.code === 0" class="my-16">
+       <div
+         v-if="peerFilesInfo.type === 'transDir' && !status.isLock"
+         class="flex items-center gap-2 mb-3"
+       >
+         <ToggleSwitch v-model="classifyOn" />
+         <span class="text-sm">{{
+           $i18n.locale === 'zh' ? '自动分类落盘（图片/视频/文档…）' : 'Auto-classify (Images/Videos/Docs…)'
+         }}</span>
+       </div>
           <!-- 接收和终止 -->
           <Button
             v-if="!status.isLock"
@@ -308,6 +319,14 @@ onUnmounted(() => {
             <Icon name="solar:confetti-line-duotone" size="100" class="text-amber-500" />
             <p class="text-xl tracking-wider">{{ t('hint.transCompleted') }}</p>
           </div>
+
+       <a v-if="previewUrl" :href="previewUrl" target="_blank" class="block mb-3">
+         <Button rounded severity="secondary" outlined class="w-full tracking-wider"
+           ><Icon name="solar:gallery-linear" class="mr-2" />{{
+             $i18n.locale === 'zh' ? '在线预览' : 'Preview'
+           }}</Button
+         ></a
+       >
 
           <!-- 如果不支持现代文件访问，则显示手动下载按钮 -->
           <Button

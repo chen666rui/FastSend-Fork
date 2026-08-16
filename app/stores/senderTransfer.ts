@@ -32,6 +32,7 @@ export const useSenderTransferStore = defineStore('senderTransfer', () => {
   const durationTimeStr = ref('0:00:00')
   const curFile = ref<SenderCurrentFileState>(createSenderCurrentFileState())
   const status = ref<SenderStatusState>(createSenderStatusState())
+  const isPaused = ref(false)
 
   let calcSpeedJobId: ReturnType<typeof setInterval> | undefined
   let ws: WebSocket | null = null
@@ -57,6 +58,7 @@ export const useSenderTransferStore = defineStore('senderTransfer', () => {
     durationTimeStr.value = '0:00:00'
     curFile.value = createSenderCurrentFileState()
     status.value = createSenderStatusState()
+    isPaused.value = false
     payloadFileMap = {}
   }
 
@@ -153,6 +155,10 @@ export const useSenderTransferStore = defineStore('senderTransfer', () => {
         const ab = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength)
         if (ab.byteLength === 0) continue
 
+                // ⏸️ 暂停检查点
+        while (isPaused.value) {
+          await new Promise((r) => setTimeout(r, 200))
+        }
         hasher.update(CryptoJS.lib.WordArray.create(ab))
         await pdc?.sendData(ab)
 
@@ -334,6 +340,10 @@ export const useSenderTransferStore = defineStore('senderTransfer', () => {
     }
   }
 
+  function setPaused(v: boolean) {
+    isPaused.value = v
+  }
+
   function cleanup() {
     dispose()
   }
@@ -347,9 +357,10 @@ export const useSenderTransferStore = defineStore('senderTransfer', () => {
     durationTimeStr,
     curFile,
     status,
+    isPaused,
     shareLink,
     initialize,
-    cleanup,
+    cleanup, setPaused,
     confirmUser,
     copyLink,
     renderQRCode

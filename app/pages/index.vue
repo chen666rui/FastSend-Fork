@@ -3,6 +3,7 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const toast = useToast()
 const homeStore = useHomeStore()
+const transferConfigStore = useTransferConfigStore()
 const { isModernFileAPISupport, isDirSupport, receiveCode, isFileDraging } = storeToRefs(homeStore)
 const fileDragArea = ref()
 
@@ -22,7 +23,32 @@ const formatSize = humanFileSize
 const fmtTime = (t: number) => new Date(t).toLocaleString()
 
 // 🆙 剪贴板智能取件
+// 🆙 截图直发 + 智能取件
 function onPaste(e: ClipboardEvent) {
+  // ① 截图/图片直接发送
+  const files = e.clipboardData?.files
+  if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+    e.preventDefault()
+    const raw = files[0]
+    const ext = raw.type.split('/')[1] || 'png'
+    const d = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const name =
+      raw.name && raw.name !== 'image.png'
+        ? raw.name
+        : `截图-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.${ext}`
+    const file = new File([raw], name, { type: raw.type, lastModified: Date.now() })
+    transferConfigStore.setTransferFiles('transFile', dealFilesFormFile(file))
+    toast.add({
+      severity: 'success',
+      summary: locale.value === 'zh' ? '截图直发' : 'Paste Send',
+      detail: name,
+      life: 3e3
+    })
+    navigateTo(localePath('/sender'))
+    return
+  }
+  // 智能取件码（原有逻辑）
   const text = e.clipboardData?.getData('text') || ''
   if (!text) return
   const code = (text.match(/[?&]code=(\d{4})/) || text.match(/(?<!\d)(\d{4})(?!\d)/))?.[1]
@@ -163,7 +189,8 @@ onUnmounted(() => {
     <!-- 🆙 传输历史 -->
     <div v-if="records.length" class="mx-4 md:mx-[10vw] mt-10 text-left">
       <div class="flex items-center justify-between mb-2">
-        <h2 class="text-sm tracking-wider">📜 传输历史（仅本机）</h2>
+            <h2 class="text-sm tracking-wider">📜 {{ locale === 'zh' ? '传输历史（仅本机）' : 'History (local only)' }}</h2>
+    <Button text size="small" severity="secondary" @click="clear">{{ locale === 'zh' ? '清空' : 'Clear' }}</Button>
         <Button text size="small" severity="secondary" @click="clear">清空</Button>
       </div>
       <div class="space-y-2">
@@ -172,7 +199,7 @@ onUnmounted(() => {
           :key="r.time"
           class="flex items-center justify-between text-xs p-2 px-3 rounded-lg bg-white/70 dark:bg-zinc-900/70 border border-neutral-200 dark:border-zinc-800"
         >
-          <span>{{ r.role === 'send' ? '📤 发送' : '📥 接收' }} · {{ r.name }}</span>
+          <span>      <span>{{ r.role === 'send' ? (locale === 'zh' ? '📤 发送' : '📤 Send') : locale === 'zh' ? '📥 接收' : '📥 Recv' }} · {{ r.name }}</span> · {{ r.name }}</span>
           <span class="text-neutral-500">{{ formatSize(r.size) }} · {{ fmtTime(r.time) }}</span>
         </div>
       </div>
