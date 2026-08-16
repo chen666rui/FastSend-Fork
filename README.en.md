@@ -1,15 +1,13 @@
 <h1 align="center">FastSend-Fork</h1>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-2.1.0--Pro-blue.svg?style=flat-square" />
+  <img alt="Version" src="https://img.shields.io/badge/version-1.1.0正式版-blue.svg?style=flat-square" />
   <a href="#" target="_blank">
     <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" />
   </a>
 </p>
 
-<p align="center">
-  <img src="./public/image.png" />
-</p>
+
 
 ## 📖 About the Project
 
