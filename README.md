@@ -7,9 +7,7 @@
   </a>
 </p>
 
-<p align="center">
-  <img src="./public/image.webp" />
-</p>
+
 
 ## 📖 项目介绍
 
