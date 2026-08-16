@@ -11,7 +11,7 @@
 
 > - Note: The screenshots below are from the v1.0.0 Beta and may not reflect the latest version. For reference only.
 <p align="center">
-  <img src="./public/image.png" />
+  <img src="./public/image.webp" />
 </p>
 
 ## 📖 About the Project
@@ -62,7 +62,7 @@ FastSend-Fork is a fork of FastSend — a peer-to-peer file transfer tool built 
 
 > - Note: The screenshot below is from the v1.0.0 Beta and may not reflect the latest version. For reference only.
 <p align="center">
-  <img src="./public/color.png" />
+  <img src="./public/color.webp" />
 </p>
 
 ## 📅 Changelog — 2026-08-15 (v1.0.0 Official)
@@ -191,7 +191,7 @@ node .output/server/index.mjs
 - Optional (email the tunnel URL on every start): on lines 15–18, fill in the sender email, etc. The authorization code is shown below:
 
 <p align="center">
-  <img src="./public/sqm.png" />
+  <img src="./public/sqm.webp" />
 </p>
 
 Enable IMAP/SMTP for your mailbox and copy the authorization code (shown only once) into the corresponding quotes; fill in the server address per the comments (for other providers, it's usually on the same page); set the receiving email to your own as well. Save and exit.
