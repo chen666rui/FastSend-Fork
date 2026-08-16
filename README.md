@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="./public/image.png" />
+  <img src="./public/image.webp" />
 </p>
 
 ## 📖 项目介绍
@@ -34,7 +34,7 @@ FastSend-Fork 是基于 FastSend的分支，基于 WebRTC 技术的点对点文�
 - 🎨 自定义界面颜色
 
 <p align="center">
-  <img src="./public/color.png" />
+  <img src="./public/color.webp" />
 </p>
 
 **增强特性**
@@ -179,7 +179,7 @@ node tools/auto-https.mjs
 - 必填:第12行的双引号里填cloudflare的路径并确认11行的端口是否正确
 - 选填（可将每次的内网穿透信息发送到邮箱）：第15-18行的信息发件人邮箱在双引号里填你的邮箱，授权码如图:
 <p align="center">
-  <img src="./public/sqm.png" />
+  <img src="./public/sqm.webp" />
 </p>
 开启邮箱的IMAP/SMTP服务复制出现的授权码（只显示一次）填写到授权码对应的双引号里，下面服务器地址按注释填到双引号里，其他的邮箱一般都在授权码那一页，接受连接的邮箱也填自己的邮箱，完成后保存并退出。
 
