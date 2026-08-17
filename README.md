@@ -65,7 +65,6 @@ FastSend-Fork 是基于 FastSend的分支，基于 WebRTC 技术的点对点文�
 
 🛡️ 部署与安全
 - 🔒 **自动 HTTPS**：自签名证书自动生成（825 天，含局域网 IP SAN）
-- 🚀 **`start.bat` 一键启动** + 隧道守护崩溃自启 + 开机自启
 - ☁️ **Cloudflare Workers 公共 Demo**
 - 🩺 **`/api/health` 健康端点** + UptimeRobot 宕机通知
 - 🚦 **信令限流防刷**：单 IP 每分钟 120 次上限
@@ -209,7 +208,7 @@ node tools/auto-https.mjs
 2. **传输内核**：`File.stream()` 零拷贝流式读取、ICE 自动重启、背压点火器
 3. **可视化仪表盘**：局域网直连雷达、RTT 信号条、速度曲线、ETA、SHA-256 完整性指纹
 4. **体验功能**：智能取件、传输历史、机械键盘音效、完成通知、自定义取色器、中英双语
-5. **部署工程**：自动 HTTPS、`start.bat` 一键启动、隧道守护、CF Workers 公共 Demo、CI 双引擎
+5. **部署工程**：自动 HTTPS、隧道守护、CF Workers 公共 Demo、CI 双引擎
 6. **构建与安全**：关闭 devtools、sitemap zeroRuntime、安全响应头全套
 
 ### FastSend-Fork
